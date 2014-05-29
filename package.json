@@ -1,0 +1,27 @@
+{
+  "name": "node-quartz",
+  "version": "0.1.0",
+  "description": "Distributed Scheduling framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/xjodoin/node-quartz.git"
+  },
+  "author": "Xavier Jodoin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xjodoin/node-quartz/issues"
+  },
+  "homepage": "https://github.com/xjodoin/node-quartz",
+  "dependencies": {
+    "redis": "~0.10.3",
+    "cron-parser": "~0.3.5",
+    "moment-range": "~1.0.2",
+    "lodash": "~2.4.1",
+    "moment": "~2.6.0",
+    "winston": "~0.7.3"
+  }
+}
