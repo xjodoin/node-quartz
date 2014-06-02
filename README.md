@@ -8,7 +8,7 @@ It's on NPM.
 
 ## Usage
 
-	var quartz = require('node-quartz');
+  var quartz = require('node-quartz');
   
   var job = {
                 id: 'job_id',
@@ -24,7 +24,7 @@ It's on NPM.
   
   
 ## Requirement
-  >= Redis 2.8
+  - >= Redis 2.8
 
 
 
