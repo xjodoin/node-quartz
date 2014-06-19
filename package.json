@@ -1,6 +1,6 @@
 {
   "name": "node-quartz",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Distributed Scheduling framework",
   "main": "index.js",
   "scripts": {
