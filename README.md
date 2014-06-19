@@ -8,11 +8,22 @@ It's on NPM.
 
 ## Usage
 
+```javascript
+
+  var options = {
+       scriptsDir : '/my/scripts/path',
+       redis : {
+            port : null,
+            host: null,
+            options : {}
+       }
+  };
+
   var quartz = require('node-quartz');
   
   var job = {
                 id: 'job_id',
-                script: __dirname + '/scriptToRun',
+                script: 'scriptToRun',
                 cron: '*/2 * * * *',
                 options: {
                     currentDate: null,
@@ -22,6 +33,8 @@ It's on NPM.
 
   quartz.scheduleJob(job);
   
+
+```  
   
 ## Requirement
   - >= Redis 2.8
