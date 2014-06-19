@@ -37,7 +37,7 @@ It's on NPM.
 ```  
   
 ## Requirement
-  - >= Redis 2.8
+  - Redis 2.8 
 
 
 
