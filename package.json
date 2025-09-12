@@ -1,10 +1,20 @@
 {
   "name": "node-quartz",
-  "version": "0.2.3",
+  "version": "0.4.0",
   "description": "Distributed Scheduling framework",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -p .",
+    "test": "npm run build && mocha --reporter spec --exit",
+    "lint": "eslint .",
+    "demo": "node test.js",
+    "prepublishOnly": "npm run build",
+    "cli": "node bin/quartz-cli.js",
+    "test:compose": "docker compose up --abort-on-container-exit --exit-code-from test"
+  },
+  "bin": {
+    "quartz": "bin/quartz-cli.js",
+    "node-quartz": "bin/quartz-cli.js"
   },
   "repository": {
     "type": "git",
@@ -16,12 +26,23 @@
     "url": "https://github.com/xjodoin/node-quartz/issues"
   },
   "homepage": "https://github.com/xjodoin/node-quartz",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "bin"
+  ],
   "dependencies": {
-    "redis": "~0.10.3",
-    "cron-parser": "~0.3.5",
-    "moment-range": "~1.0.2",
-    "lodash": "~2.4.1",
-    "moment": "~2.6.0",
-    "winston": "~0.7.3"
+    "redis": "^4.6.13",
+    "cron-parser": "^4.9.0"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "mocha": "^10.6.0",
+    "chai": "^4.4.1",
+    "typescript": "^5.6.2",
+    "@types/node": "^20.14.12"
   }
 }
