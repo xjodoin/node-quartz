@@ -42,6 +42,20 @@ export interface LoggerLike {
   error?: (...args: any[]) => void;
 }
 
+export interface JobStore {
+  load(): Promise<Job[]>;
+  list(): Promise<Job[]>;
+  save(job: Job): Promise<void>;
+  remove(jobId: string): Promise<void>;
+}
+
+export interface StoreOptions {
+  type: 'memory' | 'file' | 'custom';
+  jobs?: Job[]; // for memory store
+  path?: string; // for file store
+  impl?: JobStore; // for custom store
+}
+
 export interface CreateOptions {
   scriptsDir?: string;
   prefix?: string;
@@ -50,6 +64,7 @@ export interface CreateOptions {
   queues?: string[];
   heartbeat?: { intervalMs?: number; jitterMs?: number };
   processors?: Record<string, (job: Job, done?: (err?: any) => void) => any>;
+  store?: StoreOptions;
 }
 
 export interface Scheduler {
@@ -60,4 +75,3 @@ export interface Scheduler {
   close(cb?: (err?: any) => void): Promise<void> | void;
   events: EventEmitter;
 }
-

@@ -1,0 +1,1 @@
+{"id":"quartz:test:1757721409709:2589:job-cliadd","script":"ok","cron":"*/1 * * * * *","data":{"counterKey":"quartz:test:1757721409709:2589:counters:cliadd"},"options":{"endDate":"2025-09-12T23:56:52.709Z"}}

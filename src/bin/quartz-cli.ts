@@ -40,6 +40,11 @@ Usage:
   quartz failed:drain-to-file --out <file.json> [--prefix <p>] [--redis <url>] [--purge]
   quartz failed:import-from-file --in <file.json> [--prefix <p>] [--redis <url>] [--requeue] [--reset]
 
+  quartz defs:list [--prefix <p>] [--redis <url>]
+  quartz defs:add --file <job.json> [--prefix <p>] [--redis <url>]
+  quartz defs:remove --id <jobId> [--prefix <p>] [--redis <url>]
+  quartz defs:reload [--prefix <p>] [--redis <url>]
+
 Environment:
   REDIS_URL can be used instead of --redis
 `);
@@ -56,6 +61,9 @@ async function main() {
   await client.connect();
   const failedKey = k(prefix, 'failed');
   const jobsKey = k(prefix, 'jobs');
+  const defsIndex = k(prefix, 'defs:index');
+  const defKey = (id: string) => k(prefix, 'defs', id);
+  const defsChannel = k(prefix, 'defs:events');
 
   try {
     if (cmd === 'failed:list') {
@@ -173,6 +181,35 @@ async function main() {
         } catch { /* ignore */ }
       }
       console.log(`${requeue ? 'Requeued' : 'Imported'} ${imported} item(s)`);
+    } else if (cmd === 'defs:list') {
+      const ids = await client.sMembers(defsIndex);
+      const defs = [] as any[];
+      for (const id of ids) {
+        const js = await client.get(defKey(id));
+        if (js) defs.push(JSON.parse(js));
+      }
+      console.log(JSON.stringify(defs, null, 2));
+    } else if (cmd === 'defs:add') {
+      const f = args.file;
+      if (!f) { console.error('Missing --file <job.json>'); process.exit(2); }
+      const p = path.resolve(process.cwd(), f);
+      if (!fs.existsSync(p)) { console.error('File not found:', p); process.exit(3); }
+      const job = JSON.parse(fs.readFileSync(p, 'utf8'));
+      if (!job || !job.id) { console.error('Invalid job payload (missing id)'); process.exit(4); }
+      await client.set(defKey(job.id), JSON.stringify(job));
+      await client.sAdd(defsIndex, job.id);
+      await client.publish(defsChannel, JSON.stringify({ action: 'upsert', id: job.id }));
+      console.log('Added definition', job.id);
+    } else if (cmd === 'defs:remove') {
+      const id = args.id;
+      if (!id) { console.error('Missing --id <jobId>'); process.exit(2); }
+      await client.del(defKey(id));
+      await client.sRem(defsIndex, id);
+      await client.publish(defsChannel, JSON.stringify({ action: 'remove', id }));
+      console.log('Removed definition', id);
+    } else if (cmd === 'defs:reload') {
+      await client.publish(defsChannel, JSON.stringify({ action: 'reload' }));
+      console.log('Reload event published');
     } else {
       usage();
       process.exit(1);
@@ -183,4 +220,3 @@ async function main() {
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
-

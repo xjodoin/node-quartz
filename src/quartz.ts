@@ -44,6 +44,9 @@ function create(options?: CreateOptions): Scheduler {
   const k = (...parts: string[]) => [prefix].concat(parts).join(':');
   const qjobs = (q: string) => k('q', q, 'jobs');
   const qprocessing = (q: string) => k('q', q, 'processing');
+  const ddef = (id: string) => k('defs', id);
+  const ddefIndex = () => k('defs:index');
+  const defsChannel = () => k('defs:events');
 
   function dateReviver(key: string, value: any) {
     if (typeof value === 'string') {
@@ -87,6 +90,24 @@ function create(options?: CreateOptions): Scheduler {
     };
     const dbIndex = options.redis && typeof options.redis.database === 'number' ? options.redis.database : 0;
     pubsub.pSubscribe(`__keyevent@${dbIndex}__:expired`, handleEvent).catch((e) => err(e));
+    // defs events
+    (pubsub as any).subscribe(defsChannel(), (msg: string) => {
+      if (closing) return;
+      try {
+        const ev = JSON.parse(msg);
+        if (ev && ev.action === 'upsert' && ev.id) {
+          client.get(ddef(ev.id)).then((js) => {
+            if (!js) return;
+            const job = JSON.parse(js, dateReviver) as Job;
+            scheduleJob(job);
+          }).catch((e: any) => err(e));
+        } else if (ev && ev.action === 'remove' && ev.id) {
+          cancelJob(ev.id).catch((e) => err(e));
+        } else if (ev && ev.action === 'reload') {
+          loadDefsFromRedis().catch((e) => err(e));
+        }
+      } catch (e) { err(e); }
+    }).catch((e: any) => err(e));
   }).catch((e) => err('Redis pubsub connect error', e));
 
   const master = () => {
@@ -282,6 +303,58 @@ function create(options?: CreateOptions): Scheduler {
     })();
   };
 
+  async function cancelJob(jobId: string) {
+    try {
+      await client.del(k('jobs', jobId, 'next'));
+      await client.del(k('jobs', jobId));
+    } catch (e) { err(e); }
+  }
+
+  async function loadDefsFromRedis() {
+    try {
+      const ids = await client.sMembers(ddefIndex());
+      for (const id of ids) {
+        const js = await client.get(ddef(id));
+        if (!js) continue;
+        const job = JSON.parse(js, dateReviver) as Job;
+        scheduleJob(job);
+      }
+    } catch (e) { err(e); }
+  }
+
+  async function upsertDef(job: Job) {
+    await client.set(ddef(job.id), JSON.stringify(job));
+    await client.sAdd(ddefIndex(), job.id);
+    await client.publish(defsChannel(), JSON.stringify({ action: 'upsert', id: job.id }));
+  }
+
+  async function removeDef(jobId: string) {
+    await client.del(ddef(jobId));
+    await client.sRem(ddefIndex(), jobId);
+    await client.publish(defsChannel(), JSON.stringify({ action: 'remove', id: jobId }));
+  }
+
+  async function initFromStore() {
+    const store = (options as any).store as any;
+    if (!store) return;
+    let jobs: Job[] = [];
+    if (store.type === 'memory') {
+      const { MemoryStore } = await import('./store/MemoryStore');
+      const ms = new MemoryStore(store.jobs || []);
+      jobs = await ms.load();
+    } else if (store.type === 'file' && store.path) {
+      const { FileStore } = await import('./store/FileStore');
+      const fs = new FileStore(store.path);
+      jobs = await fs.load();
+    } else if (store.type === 'custom' && store.impl) {
+      jobs = await store.impl.load();
+    }
+    for (const job of jobs) {
+      await upsertDef(job);
+      scheduleJob(job);
+    }
+  }
+
   const scheduleJob = (job: Job) => {
     let currentDate = job.options && job.options.currentDate ? new Date(job.options.currentDate as any) : new Date();
     if (currentDate < new Date()) currentDate = new Date();
@@ -305,17 +378,37 @@ function create(options?: CreateOptions): Scheduler {
     }).catch((e) => console.error(e));
   };
 
+  function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Timeout')), ms);
+      p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+    });
+  }
+
+  async function safeQuit(c: any) {
+    try { await withTimeout(c.quit(), 1500); }
+    catch { try { c.disconnect && c.disconnect(); } catch { /* ignore */ } }
+  }
+
   const close = (cb?: (err?: any) => void) => {
     const p = Promise.resolve().then(() => {
-      stopping = true;
-      closing = true;
-      if (heartbeatTimer) { clearTimeout(heartbeatTimer); heartbeatTimer = null; }
-      isMaster = false;
-    }).then(() => pubsub.pUnsubscribe().catch(() => { /* ignore */ })).then(() => Promise.allSettled([pubsub.quit(), client.quit()]) as any).then(() => {});
+      try {
+        stopping = true;
+        closing = true;
+        if (heartbeatTimer) { clearTimeout(heartbeatTimer); heartbeatTimer = null; }
+        isMaster = false;
+        // best-effort async cleanup without blocking
+        (pubsub as any).pUnsubscribe && (pubsub as any).pUnsubscribe().catch(() => {});
+        (pubsub as any).unsubscribe && (pubsub as any).unsubscribe().catch(() => {});
+        setTimeout(() => { try { (pubsub as any).disconnect && (pubsub as any).disconnect(); } catch {} }, 0);
+        setTimeout(() => { try { (client as any).disconnect && (client as any).disconnect(); } catch {} }, 0);
+      } catch {}
+    });
     if (cb) p.then(() => cb()).catch((e) => cb(e)); else return p;
   };
 
-  master();
+  // initialize definitions and master election
+  initFromStore().then(() => loadDefsFromRedis()).catch((e) => err(e)).finally(() => master());
 
   return { scheduleJob, getJob, removeJob, listJobsKey, close, events } as Scheduler;
 }

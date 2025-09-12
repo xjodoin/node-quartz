@@ -1,4 +1,69 @@
-# NodeJs Distributed and resilient job scheduling framework
+# Node Quartz — Distributed, Resilient, Redis‑Backed Job Scheduler
+
+A modern, fault‑tolerant job scheduler for Node.js with cron support, multi‑queue workers, retries + DLQ, definition stores (memory/file/custom), and Redis‑based coordination.
+
+## Features
+- Cron scheduling with seconds and optional timezone per job
+- Distributed coordination via Redis with jittered master heartbeat
+- Multi‑queue workers using `BLMOVE` (fallback to `RPOPLPUSH`) for low‑latency polling
+- Retries with exponential backoff and a failed (DLQ) queue
+- Job Definition Store: load from memory, file, or custom source; synced to Redis across instances
+- Powerful CLI: inspect/requeue failed jobs, import/export, manage definitions (add/remove/list/reload)
+- Safe processors: run scripts from `scriptsDir` or provide in‑memory processors map
+- Redis v4 async client support and clean shutdown semantics
+- TypeScript types, GitHub Actions CI, and Docker Compose integration tests
+
+## Why Node Quartz?
+- Simplicity and resilience first: minimal moving parts using Redis keyspace notifications for scheduling and straightforward worker semantics.
+- Flexible definitions: load jobs from memory/file/custom stores, keep them in sync across instances, and manage them via CLI.
+- Cron‑centric: native cron parsing (with seconds) and per‑job timezone support without complex pipelines.
+- Multi‑queue without ceremony: just list your queues and go; no heavyweight queue abstraction.
+- Pragmatic reliability: jittered master heartbeat to avoid synchronized renewals and clean shutdown guards to prevent noisy errors.
+
+How it compares
+- Bull/BullMQ: Great for queue processing with rich features; Node Quartz focuses on cron scheduling + simple job execution with lighter footprint.
+- Agenda/Bree: Similar cron scheduling space; Node Quartz adds Redis‑backed definition sync, multi‑queue workers, and a focused CLI.
+
+## Architecture
+```
+            +--------------------------+
+            |      Job Store (opt)     |
+            |  - memory / file / custom|
+            +------------+-------------+
+                         | load() / upsert
+                         v
+                +------------------+
+                |      Redis       |
+                |------------------|
+                | defs:index (SET) |
+                | defs:<id> (STR)  |<-- CLI defs:add/remove/reload
+                | defs:events (PUB)|----^ 
+                |                  |
+                | jobs (LIST/KEYS) |<-- enqueue/TTL (:next/:retry)
+                | processing (LIST)|
+                | failed (LIST)    |<-- CLI failed:list/requeue/delete
+                | master (KEY)     |  (pubsub: __keyevent__ expired)
+                +--------+---------+
+                         ^
+      pubsub (events)    |      keyspace events (expired)
+   +---------------------+----------------------+
+   |                                            |
+   v                                            v
++--+----------------+                    +------+---------------+
+|  Scheduler A      |                    |  Scheduler B        |
+|-------------------|                    |---------------------|
+| - master election |<-- heartbeat ----->| - standby/worker    |
+| - schedule cron   |                    | - schedule on events|
+| - worker loop     |<-- BL/MOVE/RPOP -->| - worker loop       |
+| - processors      |                    | - processors        |
++--+----------------+                    +------+---------------+
+   | processors (scriptsDir)                      | processors (scriptsDir)
+   v                                             v
+ [job module fn]                             [job module fn]
+
+CLI: interacts directly with Redis (defs:*, failed, jobs) to inspect
+     and control state; changes propagate via defs:events.
+```
 
 ## Installation
 
@@ -39,6 +104,11 @@ npx quartz failed:requeue --idx 0 --reset --redis "$REDIS_URL" --prefix quartz:t
     logger: console, // optional, provide your own logger (debug/info/warn/error)
     queues: ['high', 'default', 'low'], // optional, defaults to ['default']
     heartbeat: { intervalMs: 2000, jitterMs: 500 }, // optional jittered master heartbeat
+    // Optional: persist and sync job definitions across instances
+    // Uncomment one of the store options below
+    // store: { type: 'memory', jobs: [ /* preloaded Job objects */ ] },
+    // store: { type: 'file', path: './jobs.json' },
+    // store: { type: 'custom', impl: myStore },
     redis: {
       // Prefer url form; legacy host/port also supported
       url: process.env.REDIS_URL || 'redis://localhost:6379'
@@ -106,6 +176,18 @@ module.exports = function (job, done) {
   to `<prefix>:q:<queue>:jobs` and processed atomically into `<prefix>:q:<queue>:processing`.
 - `heartbeat`: `{ intervalMs?: number, jitterMs?: number }` controls master heartbeat frequency
   and random jitter (defaults: 2000ms interval, ±500ms jitter).
+- `store`: load and synchronize job definitions across instances.
+  - Memory: `{ type: 'memory', jobs: [/* Job */] }`
+  - File: `{ type: 'file', path: './jobs.json' }` (JSON array of Job objects)
+  - Custom: `{ type: 'custom', impl }` where `impl` implements `load/list/save/remove`
+
+### Job Definitions Sync (Store)
+- Definitions are stored in Redis under:
+  - Set: `<prefix>:defs:index`
+  - Keys: `<prefix>:defs:<jobId>` (stringified Job)
+  - PubSub: `<prefix>:defs:events` (JSON messages: `{action:'upsert'|'remove'|'reload', id?}`)
+- On startup: loads from configured store (optional), upserts to Redis, loads all Redis definitions, and schedules them.
+- CLI can manage definitions; changes propagate via PubSub to all instances.
 
 ## Retries and Failures
 - Set `retry` on the job (top-level or under `options.retry`):
@@ -154,6 +236,11 @@ Install globally or use via `npx`:
 - Export failed to file: `quartz failed:drain-to-file --out failed.json --prefix quartz --redis redis://localhost:6379 --purge`
 - Import failed from file: `quartz failed:import-from-file --in failed.json --prefix quartz --redis redis://localhost:6379`
 - Requeue from file: `quartz failed:import-from-file --in failed.json --requeue --reset`
+
+- List job definitions: `quartz defs:list --prefix quartz --redis redis://localhost:6379`
+- Add a job definition from file: `quartz defs:add --file job.json --prefix quartz --redis redis://localhost:6379`
+- Remove a job definition: `quartz defs:remove --id job_id --prefix quartz --redis redis://localhost:6379`
+- Ask instances to reload defs: `quartz defs:reload --prefix quartz --redis redis://localhost:6379`
 
 You can also set env vars: `REDIS_URL` and `QUARTZ_PREFIX`.
 
