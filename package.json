@@ -1,7 +1,7 @@
 {
   "name": "node-quartz",
   "version": "1.0.0",
-  "description": "Distributed Scheduling framework",
+  "description": "Distributed, resilient, Redis‑backed job scheduler for Node.js (cron, multi‑queue, retries + DLQ, definition store, CLI)",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p .",
@@ -18,14 +18,46 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/xjodoin/node-quartz.git"
+    "url": "https://github.com/xjodoin/node-quartz.git"
   },
   "author": "Xavier Jodoin",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/xjodoin/node-quartz/issues"
   },
-  "homepage": "https://github.com/xjodoin/node-quartz",
+  "homepage": "https://xjodoin.github.io/node-quartz/",
+  "keywords": [
+    "cron",
+    "scheduler",
+    "redis",
+    "jobs",
+    "worker",
+    "queue",
+    "quartz",
+    "distributed",
+    "resilient",
+    "nodejs"
+  ],
+  "sideEffects": false,
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/xjodoin"
+  },
+  "contributors": [
+    "Xavier Jodoin"
+  ],
+  "maintainers": [
+    "Xavier Jodoin"
+  ],
+  "directories": {
+    "doc": "docs"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "types": "dist/index.d.ts",
   "files": [
     "dist",

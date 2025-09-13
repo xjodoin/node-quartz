@@ -1,5 +1,12 @@
 # Node Quartz — Distributed, Resilient, Redis‑Backed Job Scheduler
 
+[![CI](https://img.shields.io/github/actions/workflow/status/xjodoin/node-quartz/ci.yml?branch=master&label=CI)](https://github.com/xjodoin/node-quartz/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/github/actions/workflow/status/xjodoin/node-quartz/docs.yml?branch=master&label=docs)](https://github.com/xjodoin/node-quartz/actions/workflows/docs.yml)
+[![npm version](https://img.shields.io/npm/v/node-quartz.svg)](https://www.npmjs.com/package/node-quartz)
+[![npm downloads](https://img.shields.io/npm/dm/node-quartz.svg)](https://www.npmjs.com/package/node-quartz)
+[![license](https://img.shields.io/github/license/xjodoin/node-quartz.svg)](LICENSE)
+[![Docs site](https://img.shields.io/badge/docs-website-blue.svg)](https://xjodoin.github.io/node-quartz/)
+
 A modern, fault‑tolerant job scheduler for Node.js with cron support, multi‑queue workers, retries + DLQ, definition stores (memory/file/custom), and Redis‑based coordination.
 
 ## Features
