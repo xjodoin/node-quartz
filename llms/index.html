@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="https://xjodoin.github.io/node-quartz/usage/">
+        <link rel="canonical" href="https://xjodoin.github.io/node-quartz/llms/">
       
       
-        <link rel="prev" href="../installation/">
+        <link rel="prev" href="../api/">
       
-      
-        <link rel="next" href="../cli/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -24,7 +22,7 @@
     
     
       
-        <title>Usage - Node Quartz</title>
+        <title>LLMs - Node Quartz</title>
       
     
     
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#usage" class="md-skip">
+        <a href="#llm-context-files" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Usage
+              LLMs
             
           </span>
         </div>
@@ -243,11 +241,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../usage/" class="md-tabs__link">
         
   
   
@@ -340,9 +336,11 @@
   
   
   
+    
   
-    <li class="md-tabs__item">
-      <a href="../llms/" class="md-tabs__link">
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
         
   
   
@@ -450,32 +448,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    Usage
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
         
   
   
@@ -486,35 +462,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#processors" class="md-nav__link">
-    <span class="md-ellipsis">
-      Processors
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -611,10 +558,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../llms/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -625,6 +581,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -645,7 +602,7 @@
 
 
   
-    <a href="https://github.com/xjodoin/node-quartz/edit/master/docs/usage.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/xjodoin/node-quartz/edit/master/docs/llms.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -653,33 +610,18 @@
   
 
 
-<h1 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h1>
-<div class="codehilite"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">create</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">require</span><span class="p">(</span><span class="s1">&#39;node-quartz&#39;</span><span class="p">);</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="nx">quartz</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">create</span><span class="p">({</span>
-<span class="w">  </span><span class="nx">scriptsDir</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;/path/to/scripts&#39;</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">prefix</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;quartz&#39;</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">queues</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">],</span>
-<span class="w">  </span><span class="nx">redis</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">url</span><span class="o">:</span><span class="w"> </span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">REDIS_URL</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="s1">&#39;redis://localhost:6379&#39;</span><span class="w"> </span><span class="p">}</span>
-<span class="p">});</span>
-
-<span class="kd">const</span><span class="w"> </span><span class="nx">job</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">id</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;example-job&#39;</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">script</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;myScript&#39;</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">cron</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;*/10 * * * * *&#39;</span><span class="p">,</span>
-<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">any</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;payload&#39;</span><span class="w"> </span><span class="p">},</span>
-<span class="w">  </span><span class="nx">options</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">endDate</span><span class="o">:</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">Date</span><span class="p">(</span><span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">60</span><span class="nx">_000</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
-<span class="p">};</span>
-
-<span class="nx">quartz</span><span class="p">.</span><span class="nx">scheduleJob</span><span class="p">(</span><span class="nx">job</span><span class="p">);</span>
-</code></pre></div>
-
-<h2 id="processors">Processors<a class="headerlink" href="#processors" title="Permanent link">&para;</a></h2>
-<p>Create <code>/path/to/scripts/myScript.js</code>:</p>
-<div class="codehilite"><pre><span></span><code><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="kd">function</span><span class="p">(</span><span class="nx">job</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;processing&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">job</span><span class="p">.</span><span class="nx">id</span><span class="p">,</span><span class="w"> </span><span class="nx">job</span><span class="p">.</span><span class="nx">data</span><span class="p">);</span>
-<span class="p">};</span>
-</code></pre></div>
+<h1 id="llm-context-files">LLM Context Files<a class="headerlink" href="#llm-context-files" title="Permanent link">&para;</a></h1>
+<p>This site provides LLM-friendly context files at the repository root to help language models use the project effectively:</p>
+<ul>
+<li><a href="/llms.txt">/llms.txt</a>: Curated summary for LLMs, with links to the key Markdown docs and references</li>
+<li><a href="/llms-full.txt">/llms-full.txt</a>: Expanded context with inline copies of the most important docs and examples</li>
+</ul>
+<p>If these links do not resolve on GitHub Pages, use the raw GitHub links:</p>
+<ul>
+<li><a href="https://raw.githubusercontent.com/xjodoin/node-quartz/master/llms.txt">llms.txt (raw)</a></li>
+<li><a href="https://raw.githubusercontent.com/xjodoin/node-quartz/master/llms-full.txt">llms-full.txt (raw)</a></li>
+</ul>
+<p>For more about the llms.txt proposal, see the community resources listed at llmstxt.org.</p>
 
 
 
