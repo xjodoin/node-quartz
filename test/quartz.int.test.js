@@ -77,10 +77,16 @@ describe('node-quartz integration', function () {
 
     quartz.scheduleJob(job);
 
-    await sleep(4000);
-
-    const attempts = parseInt((await client.get(attemptsKey)) || '0', 10);
-    const failedCount = await client.lLen(failedKey);
+    // Poll up to ~6s to account for CI scheduling latency
+    let attempts = 0;
+    let failedCount = 0;
+    const deadline = Date.now() + 6000;
+    while (Date.now() < deadline) {
+      attempts = parseInt((await client.get(attemptsKey)) || '0', 10);
+      failedCount = await client.lLen(failedKey);
+      if (attempts >= 3 && failedCount >= 1) break;
+      await sleep(200);
+    }
     await quartz.close();
 
     expect(attempts).to.be.at.least(3); // initial + 2 retries
