@@ -19,7 +19,6 @@ jobs:
           --health-interval 5s \
           --health-timeout 5s \
           --health-retries 20
-        command: ["redis-server", "--notify-keyspace-events", "Ex"]
     strategy:
       matrix:
         node-version: [14.x, 16.x, 18.x, 20.x]
@@ -30,6 +29,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
+      - name: Configure Redis keyspace notifications
+        run: redis-cli -h 127.0.0.1 -p 6379 CONFIG SET notify-keyspace-events Ex
       - run: npm run build
       - run: npm run lint --if-present
       - run: npm test
