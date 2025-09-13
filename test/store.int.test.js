@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 const path = require('path');
-const fs = require('fs');
+// const fs = require('fs');
 const { expect } = require('chai');
 const { createClient } = require('redis');
 const create = require('../lib/quartz');
@@ -17,7 +17,7 @@ describe('job store integration', function () {
   before(async () => {
     client = createClient({ url: REDIS_URL });
     await client.connect();
-    try { await client.configSet('notify-keyspace-events', 'Ex'); } catch (_) {}
+    try { await client.configSet('notify-keyspace-events', 'Ex'); } catch (e) { void e; }
   });
 
   beforeEach(async () => {
@@ -78,4 +78,3 @@ describe('job store integration', function () {
     expect(count).to.be.greaterThan(0);
   });
 });
-

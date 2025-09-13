@@ -19,7 +19,7 @@ describe('CLI defs integration', function () {
   before(async () => {
     client = createClient({ url: REDIS_URL });
     await client.connect();
-    try { await client.configSet('notify-keyspace-events', 'Ex'); } catch (_) {}
+    try { await client.configSet('notify-keyspace-events', 'Ex'); } catch (e) { void e; }
   });
 
   beforeEach(async () => {
@@ -70,4 +70,3 @@ describe('CLI defs integration', function () {
     expect(count).to.be.greaterThan(0);
   });
 });
-
