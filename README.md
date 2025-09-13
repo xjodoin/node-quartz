@@ -251,6 +251,12 @@ Install globally or use via `npx`:
 
 You can also set env vars: `REDIS_URL` and `QUARTZ_PREFIX`.
 
+## LLM Context Files
+- LLM summary: /llms.txt (raw: https://raw.githubusercontent.com/xjodoin/node-quartz/master/llms.txt)
+- LLM full context: /llms-full.txt (raw: https://raw.githubusercontent.com/xjodoin/node-quartz/master/llms-full.txt)
+
+These provide curated and expanded Markdown content to help language models use the project effectively.
+
 ## Testing
 - Start Redis with keyspace notifications: `redis-server --notify-keyspace-events Ex`
 - Run tests: `npm test`

@@ -1,0 +1,43 @@
+# Node Quartz
+
+> Distributed, resilient, Redis‑backed job scheduler for Node.js with cron (seconds), multi‑queue workers, retries + DLQ, a definition store, and a focused CLI. Requires Redis keyspace notifications for expired events (notify-keyspace-events Ex).
+
+Node Quartz schedules and runs jobs across one or more Node.js processes using Redis. It supports:
+
+- Cron expressions with seconds; optional per‑job timezone.
+- Multi‑queue consumption (BLMOVE with RPOPLPUSH fallback).
+- Retries with exponential backoff and a failed queue (DLQ).
+- A Job Definition Store (memory/file/custom) synchronized via Redis (<prefix>:defs:* + pub/sub) so all instances stay in sync.
+- A CLI to inspect and requeue failed jobs and to add/remove/reload definitions.
+
+Important notes for LLMs and tools:
+
+- Redis must have keyspace notifications enabled for expired events: `notify-keyspace-events Ex`.
+- The public API is a factory `create(options)` that returns `{ scheduleJob, getJob, removeJob, listJobsKey, close, events }`.
+- Processors can be loaded from a `scriptsDir` (CommonJS modules) or provided inline via `options.processors`.
+- Keys are namespaced by `prefix` (default `quartz`). Queue lists: `<prefix>:q:<queue>:jobs` and `<prefix>:q:<queue>:processing`. DLQ: `<prefix>:failed`. Definitions: `<prefix>:defs:index`, `<prefix>:defs:<id>`, `<prefix>:defs:events`.
+
+## Docs
+
+- [Overview](https://raw.githubusercontent.com/xjodoin/node-quartz/master/docs/index.md): High‑level summary and links
+- [Installation](https://raw.githubusercontent.com/xjodoin/node-quartz/master/docs/installation.md): NPM install and Redis requirements
+- [Usage](https://raw.githubusercontent.com/xjodoin/node-quartz/master/docs/usage.md): Minimal example and processors
+- [CLI](https://raw.githubusercontent.com/xjodoin/node-quartz/master/docs/cli.md): Commands for failed jobs and definitions
+- [Job Store](https://raw.githubusercontent.com/xjodoin/node-quartz/master/docs/store.md): Memory/file/custom stores and Redis sync
+- [Architecture](https://raw.githubusercontent.com/xjodoin/node-quartz/master/docs/architecture.md): ASCII diagram of components
+- [API](https://raw.githubusercontent.com/xjodoin/node-quartz/master/docs/api.md): Factory, methods, and events
+
+## Reference
+
+- [README](https://raw.githubusercontent.com/xjodoin/node-quartz/master/README.md): Project README with features and examples
+- [CHANGELOG](https://raw.githubusercontent.com/xjodoin/node-quartz/master/CHANGELOG.md): Release notes and breaking changes
+- [License (MIT)](https://raw.githubusercontent.com/xjodoin/node-quartz/master/LICENSE)
+- [Example processor ok.js](https://raw.githubusercontent.com/xjodoin/node-quartz/master/test_scripts/ok.js): Increments a Redis counter
+- [Example processor fail.js](https://raw.githubusercontent.com/xjodoin/node-quartz/master/test_scripts/fail.js): Throws to trigger retries/DLQ
+
+## Optional
+
+- [Docs site (HTML)](https://xjodoin.github.io/node-quartz/): Rendered documentation (also available as linked .md files above)
+- [CI workflow](https://github.com/xjodoin/node-quartz/blob/master/.github/workflows/ci.yml): Tests with Redis service
+- [Release workflow](https://github.com/xjodoin/node-quartz/blob/master/.github/workflows/release.yml): Publishes to npm on tags
+- [MkDocs config](https://raw.githubusercontent.com/xjodoin/node-quartz/master/mkdocs.yml): Site navigation and theme

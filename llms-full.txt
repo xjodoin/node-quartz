@@ -1,0 +1,308 @@
+# Node Quartz
+
+> Distributed, resilient, Redis‑backed job scheduler for Node.js with cron (seconds), multi‑queue workers, retries + DLQ, a definition store, and a focused CLI. Requires Redis keyspace notifications for expired events (notify-keyspace-events Ex).
+
+This file aggregates the primary Markdown docs and key references for LLM consumption.
+
+## Docs: Overview (docs/index.md)
+
+# Node Quartz
+
+Distributed, resilient, Redis‑backed job scheduler for Node.js with cron support, multi‑queue workers, retries + DLQ, definition stores, and a focused CLI.
+
+- Cron with seconds and optional per‑job timezone
+- Redis keyspace notification scheduling and jittered master election
+- Multi‑queue workers (`BLMOVE` with `RPOPLPUSH` fallback)
+- Retries with backoff + failed queue
+- Job Definitions Store (memory/file/custom) synced across instances
+- Powerful CLI for failed jobs and definitions
+- TypeScript types, CI, Docker Compose tests
+
+## Quick Links
+- [Installation](installation.md)
+- [Usage](usage.md)
+- [CLI](cli.md)
+- [Job Store](store.md)
+- [Architecture](architecture.md)
+- [API](api.md)
+
+## Requirements
+- Node.js >= 14
+- Redis with keyspace notifications for expired events enabled: `notify-keyspace-events Ex`
+
+## Docs: Installation (docs/installation.md)
+
+# Installation
+
+It's on NPM:
+
+```bash
+npm install node-quartz
+```
+
+## Requirements
+- Node.js >= 14
+- Redis 6.x+ recommended (keyspace notifications with `Ex`)
+
+Enable keyspace notifications for expired events:
+
+```bash
+redis-server --notify-keyspace-events Ex
+# or at runtime
+redis-cli CONFIG SET notify-keyspace-events Ex
+```
+
+## Docs: Usage (docs/usage.md)
+
+# Usage
+
+```js
+const create = require('node-quartz');
+
+const quartz = create({
+  scriptsDir: '/path/to/scripts',
+  prefix: 'quartz',
+  queues: ['default'],
+  redis: { url: process.env.REDIS_URL || 'redis://localhost:6379' }
+});
+
+const job = {
+  id: 'example-job',
+  script: 'myScript',
+  cron: '*/10 * * * * *',
+  data: { any: 'payload' },
+  options: { endDate: new Date(Date.now() + 60_000) }
+};
+
+quartz.scheduleJob(job);
+```
+
+## Processors
+Create `/path/to/scripts/myScript.js`:
+
+```js
+module.exports = async function(job) {
+  console.log('processing', job.id, job.data);
+};
+```
+
+## Docs: CLI (docs/cli.md)
+
+# CLI
+
+Install globally or use via `npx`.
+
+## Failed Queue
+- List: `quartz failed:list --prefix quartz --redis redis://localhost:6379 --count 20`
+- Requeue: `quartz failed:requeue --idx 0 --reset`
+- Delete: `quartz failed:delete --idx 0`
+- Export: `quartz failed:drain-to-file --out failed.json --purge`
+- Import: `quartz failed:import-from-file --in failed.json`
+- By id: `failed:get|requeue-id|delete-id`
+
+## Definitions
+- List: `quartz defs:list`
+- Add: `quartz defs:add --file job.json`
+- Remove: `quartz defs:remove --id job_id`
+- Reload: `quartz defs:reload`
+
+## Docs: Job Store (docs/store.md)
+
+# Job Store
+
+Use a store to preload and synchronize job definitions across instances. The scheduler persists definitions in Redis and schedules them locally.
+
+## Memory Store
+```js
+create({ store: { type: 'memory', jobs: [ /* Job objects */ ] } });
+```
+
+## File Store
+`jobs.json` should contain an array of Job objects.
+```js
+create({ store: { type: 'file', path: './jobs.json' } });
+```
+
+## Custom Store
+Provide an object implementing `load/list/save/remove`.
+```js
+const myStore = { async load() { return [...]; }, async list(){...}, async save(job){...}, async remove(id){...} };
+create({ store: { type: 'custom', impl: myStore } });
+```
+
+## Redis Keys
+- `<prefix>:defs:index` — set of job ids
+- `<prefix>:defs:<id>` — stringified Job
+- `<prefix>:defs:events` — pub/sub channel: `{action:'upsert'|'remove'|'reload', id?}`
+
+## Docs: Architecture (docs/architecture.md)
+
+# Architecture
+
+```
+            +--------------------------+
+            |      Job Store (opt)     |
+            |  - memory / file / custom|
+            +------------+-------------+
+                         | load() / upsert
+                         v
+                +------------------+
+                |      Redis       |
+                |------------------|
+                | defs:index (SET) |
+                | defs:<id> (STR)  |<-- CLI defs:add/remove/reload
+                | defs:events (PUB)|----^ 
+                |                  |
+                | jobs (LIST/KEYS) |<-- enqueue/TTL (:next/:retry)
+                | processing (LIST)|
+                | failed (LIST)    |<-- CLI failed:*
+                | master (KEY)     |
+                +--------+---------+
+                         ^
+      pubsub (events)    |      keyspace events (expired)
+   +---------------------+----------------------+
+   |                                            |
+   v                                            v
++--+----------------+                    +------+---------------+
+|  Scheduler A      |                    |  Scheduler B        |
+|-------------------|                    |---------------------|
+| - master election |<-- heartbeat ----->| - standby/worker    |
+| - schedule cron   |                    | - schedule on events|
+| - worker loop     |<-- BL/MOVE/RPOP -->| - worker loop       |
+| - processors      |                    | - processors        |
++--+----------------+                    +------+---------------+
+```
+
+## Docs: API (docs/api.md)
+
+# API
+
+```ts
+import create = require('node-quartz');
+
+const quartz = create(options?: CreateOptions);
+
+interface Scheduler {
+  scheduleJob(job: Job): void;
+  getJob(jobId: string, cb: (err: any, job?: Job | null) => void): void;
+  removeJob(jobId: string, cb: (err: any, res?: number) => void): void;
+  listJobsKey(cb: (err: any, keys?: string[]) => void): void;
+  close(cb?: (err?: any) => void): Promise<void> | void;
+  events: EventEmitter;
+}
+```
+
+See README for detailed options and events.
+
+## Reference: README (README.md)
+
+(Truncated for brevity in this context; see full README in repository.)
+
+## Reference: CHANGELOG (CHANGELOG.md)
+
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [1.0.0] - 2025-09-12
+
+### Breaking Changes
+- Node.js 14+ required; project migrated to TypeScript with `dist/` as the published entry.
+- Internal import paths changed; consumers should import the package root (e.g., `const create = require('node-quartz')`).
+- Removed legacy dependencies (`lodash`, `moment`, `moment-range`, `winston`). Logging now uses an injectable logger (defaults to `console`).
+- Redis keyspace notifications for `expired` must be enabled (`notify-keyspace-events Ex`).
+
+### Features
+- Redis v4 async client with dedicated pub/sub connection and jittered master heartbeat for robustness.
+- Worker improvements:
+  - Multi-queue consumption using `BLMOVE` (Redis >= 6.2), fallback to `RPOPLPUSH`.
+  - Opportunistic enqueue on `:next` and `:retry` expirations to improve single-process reliability.
+- Retries + DLQ:
+  - Per-job retry policy with backoff (number or object). Failed runs go to a `<prefix>:failed` list.
+- Job Definition Store and Sync:
+  - Load job definitions from memory/file/custom stores.
+  - Persist and synchronize definitions in Redis using `<prefix>:defs:*` keys and a `<prefix>:defs:events` pub/sub channel.
+- CLI Enhancements:
+  - Failed queue: list/requeue/delete/import/export, by index or by id.
+  - Definitions: list/add/remove/reload across instances.
+- Developer Experience:
+  - TypeScript types and strict build; `types` points to `dist/index.d.ts`.
+  - Docker Compose-based integration testing.
+  - GitHub Actions release workflow (publishes on version tags; tests skipped in release workflow).
+
+### Improvements
+- Safer shutdown: defensive guards prevent Redis operations after closing; best-effort unsubscribe and disconnect to avoid test hangs.
+- SCAN-based key listing replaces blocking KEYS calls.
+- Reduced worker polling latency and improved responsiveness under load.
+
+### Migration Notes
+- If you previously imported internal paths (e.g., `lib/quartz`), switch to the package root.
+- Ensure Redis is configured with keyspace notifications: `redis-server --notify-keyspace-events Ex` (or set via `CONFIG SET`).
+- Processors may be provided via `scriptsDir` (required modules) or via the `processors` map in options.
+- Consider using the new Job Store to persist and synchronize scheduled jobs across instances.
+
+## Reference: License (LICENSE)
+
+MIT License
+
+Copyright (c) 2025 Xavier Jodoin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Reference: Example Processors
+
+### test_scripts/ok.js
+
+```js
+const { createClient } = require('redis');
+
+module.exports = async function (job) {
+  const url = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+  const client = createClient({ url });
+  await client.connect();
+  try {
+    if (!job || !job.data || !job.data.counterKey) throw new Error('Missing counterKey');
+    await client.incr(job.data.counterKey);
+  } finally {
+    await client.quit();
+  }
+};
+```
+
+### test_scripts/fail.js
+
+```js
+const { createClient } = require('redis');
+
+module.exports = async function (job) {
+  const url = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+  const client = createClient({ url });
+  await client.connect();
+  try {
+    if (!job || !job.data) throw new Error('Missing job.data');
+    if (job.data.attemptsKey) {
+      await client.incr(job.data.attemptsKey);
+    }
+  } finally {
+    await client.quit();
+  }
+  throw new Error('Intentional failure');
+};
+```
+
