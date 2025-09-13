@@ -366,8 +366,10 @@ function create(options?: CreateOptions): Scheduler {
     const date = nextDate && typeof nextDate.toDate === 'function' ? nextDate.toDate() : nextDate;
     if (!date) return;
     dbg('Next schedule ' + date);
-    const endTimeDelay = cronOpts.endDate ? Math.max(0, new Date(cronOpts.endDate).getTime() - Date.now()) : undefined;
-    const delay = Math.max(0, new Date(date).getTime() - Date.now());
+    const endTimeDelayRaw = cronOpts.endDate ? (new Date(cronOpts.endDate).getTime() - Date.now()) : undefined;
+    if (typeof endTimeDelayRaw === 'number' && endTimeDelayRaw <= 0) return; // already expired, don't schedule
+    const endTimeDelay = typeof endTimeDelayRaw === 'number' ? Math.max(1, endTimeDelayRaw) : undefined;
+    const delay = Math.max(1, new Date(date).getTime() - Date.now());
     const key = k('jobs', job.id);
     if (!isClientOpen()) return;
     const setPromise = typeof endTimeDelay === 'number' ? client.set(key, JSON.stringify(job), { PX: endTimeDelay }) : client.set(key, JSON.stringify(job));
