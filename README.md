@@ -1,3 +1,5 @@
+
+
 # Node Quartz — Distributed, Resilient, Redis‑Backed Job Scheduler
 
 [![CI](https://img.shields.io/github/actions/workflow/status/xjodoin/node-quartz/ci.yml?branch=master&label=CI)](https://github.com/xjodoin/node-quartz/actions/workflows/ci.yml)
@@ -228,7 +230,7 @@ module.exports = function (job, done) {
   - `failed` (job, error)
   - `retryScheduled` (job, delayMs)
 
-The library uses `node-redis` v4 (async).
+The library uses `redis` v4 (async).
 
 ## CLI
 Install globally or use via `npx`:
